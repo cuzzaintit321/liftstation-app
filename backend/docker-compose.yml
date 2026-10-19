@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lift_mechanic
+      POSTGRES_PASSWORD: ${DB_PASS:?Set DB_PASS in backend/.env}
+      POSTGRES_DB: liftstations_data
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lift_mechanic -d liftstations_data"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  adminer:
+    image: adminer:latest
+    profiles: ["tools"]
+    ports:
+      - "127.0.0.1:8100:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_NAME: liftstations_data
+      DB_USER: lift_mechanic
+      DB_PASS: ${DB_PASS:?Set DB_PASS in backend/.env}
+    volumes:
+      - ./api:/app:ro
+    depends_on:
+      db:
+        condition: service_healthy
+  frontend:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8102:80"
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+volumes:
+  postgres_data:

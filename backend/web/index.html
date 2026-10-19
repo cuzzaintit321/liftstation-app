@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lift Station Navigator — Portfolio Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 { text-align: center; color: #4caf50; margin-bottom: 10px; }
+        .search-box {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background-color: #1e1e1e;
+            color: #fff;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+        .station-card {
+            background-color: #1e1e1e;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border-left: 5px solid #4caf50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .station-info h3 { margin: 0; font-size: 18px; color: #fff; }
+        .station-info p { margin: 5px 0 0 0; font-size: 14px; color: #aaa; }
+        .nav-btn {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+        }
+        .nav-btn:active { background-color: #388e3c; }
+        .no-gps { background-color: #555; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <h2>📍 Lift Station Navigator</h2>
+    <p style="text-align:center">Portfolio demo · fictional station records</p>
+    <input type="text" id="search" class="search-box" placeholder="Search station number or street...">
+
+    <div id="stations-list">Loading stations matrix...</div>
+
+    <script>
+        let stationsData = [];
+
+        // Fetch stations relatively via the Nginx reverse proxy port
+        async function fetchStations() {
+            try {
+                const response = await fetch('/api/stations');
+                if (!response.ok) throw new Error('Unable to load stations');
+                stationsData = await response.json();
+                renderStations(stationsData);
+            } catch (error) {
+                document.getElementById('stations-list').innerHTML = `<p style="color:red;">Error connecting to API gateway: ${error}</p>`;
+            }
+        }
+
+        function escapeHTML(value) {
+            const span = document.createElement("span");
+            span.textContent = String(value);
+            return span.innerHTML;
+        }
+
+        function renderStations(data) {
+            const listContainer = document.getElementById('stations-list');
+            listContainer.innerHTML = '';
+
+            if(data.length === 0) {
+                listContainer.innerHTML = '<p style="text-align:center;color:#666;">No stations matched your search.</p>';
+                return;
+            }
+
+            data.forEach(station => {
+                const card = document.createElement('div');
+                card.className = 'station-card';
+
+                const hasGPS = Number.isFinite(station.latitude) && Number.isFinite(station.longitude);
+                
+                // Native universal map intent linking format
+                const mapsUrl = hasGPS ? `https://www.google.com/maps/search/?api=1&query=${station.latitude},${station.longitude}` : '#';
+
+                card.innerHTML = `
+                    <div class="station-info">
+                        <h3>LS ${station.station_number}</h3>
+                        <p>${escapeHTML(station.station_name)}</p>
+                    </div>
+                    <div>
+                        ${hasGPS 
+                            ? `<a class="nav-btn" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">ROUTE</a>`
+                            : `<button class="nav-btn no-gps" disabled>NO GPS</button>`
+                        }
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        // Live real-time array filter
+        document.getElementById('search').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = stationsData.filter(station => 
+                station.station_number.toString().includes(query) || 
+                station.station_name.toLowerCase().includes(query)
+            );
+            renderStations(filtered);
+        });
+
+        fetchStations();
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Local secrets and operational data
+.env
+.env.*
+!.env.example
+liftstations.txt
+# Archives, caches, and local environments
+*.tar
+*.tar.gz
+*.zip
+__pycache__/
+*.py[cod]
+.venv/
