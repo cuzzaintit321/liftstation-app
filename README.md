@@ -1,5 +1,7 @@
 # Lift Station Navigator
 
+![liftstation-app project banner](docs/project-banner.webp)
+
 A field operations web application by Jason Edwards for finding lift stations and opening their coordinates in Google Maps. This repository is a cleaned portfolio edition of a recovered project archive.
 
 ## Features
